@@ -32,7 +32,7 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'dev') {
                         env.IMAGE_REPO = 'dev'
-                    } else if (env.BRANCH_NAME == 'master') {
+                    } else if (env.BRANCH_NAME == 'main') {
                         env.IMAGE_REPO = 'prod'
                     } else {
                         error("Only dev and master branches are supported")
