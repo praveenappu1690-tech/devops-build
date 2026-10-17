@@ -1,0 +1,9 @@
+.git
+.gitignore
+screenshots
+README.md
+*.log
+.env
+.env.*
+!.env.example
+EOF
