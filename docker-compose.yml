@@ -1,3 +1,4 @@
+
 services:
   web:
     image: ${APP_IMAGE:-praveenappu/dev:latest}
@@ -11,4 +12,4 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-EOF
+
