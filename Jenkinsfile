@@ -20,7 +20,7 @@ pipeline {
                     set -eu
                     test -f Dockerfile
                     test -f docker-compose.yml
-                    test -f build/index.html
+                    test -f build.sh
                     test -x build.sh
                     echo "Validation passed"
                 '''
@@ -52,6 +52,7 @@ pipeline {
             steps {
                 sh '''
                     set -eu
+                    ./build.sh
                     docker build --pull \
                       -t "$IMAGE:$IMAGE_TAG" \
                       -t "$IMAGE:latest" .
@@ -67,18 +68,22 @@ pipeline {
                     passwordVariable: 'DH_TOKEN'
                 )]) {
                     sh '''
+                        set -eu
                         set +x
-                        echo "$DH_TOKEN" | docker login \
+
+                        printf '%s' "$DH_TOKEN" | docker login \
                           --username "$DH_USER" --password-stdin
+
                         docker push "$IMAGE:$IMAGE_TAG"
                         docker push "$IMAGE:latest"
+
                         docker logout
                     '''
                 }
             }
         }
 
-                stage('Deploy to EC2') {
+        stage('Deploy to EC2') {
             steps {
                 sshagent(credentials: ['app-server-ssh']) {
                     withCredentials([usernamePassword(
@@ -120,3 +125,26 @@ pipeline {
                 }
             }
         }
+
+        stage('Verify') {
+            steps {
+                sh '''
+                    set -eu
+                    curl --fail --show-error --silent \
+                      "http://$APP_HOST/health"
+                    echo
+                    echo "Application health check passed"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build and deployment completed successfully."
+        }
+        failure {
+            echo "Pipeline failed. Check the stage logs and Console Output."
+        }
+    }
+}
