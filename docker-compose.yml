@@ -1,3 +1,4 @@
+
 services:
   web:
     image: ${APP_IMAGE:-praveenappu/dev:latest}
