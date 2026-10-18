@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         DOCKERHUB_USERNAME = 'praveenappu'
-        APP_HOST = '3.110.156.247'
+        APP_HOST = '65.1.107.93'
         APP_USER = 'ec2-user'
         APP_DIR = '/opt/devops-app'
     }
