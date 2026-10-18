@@ -10,7 +10,7 @@ if [[ "$IMAGE_REPO" != "dev" && "$IMAGE_REPO" != "prod" ]]; then
   exit 1
 fi
 
-PROJECT_DIR="/home/ec2-user/projects/devops-build"
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 IMAGE="${DOCKERHUB_USERNAME}/${IMAGE_REPO}:${IMAGE_TAG}"
 

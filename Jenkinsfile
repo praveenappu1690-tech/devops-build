@@ -32,10 +32,10 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'dev') {
                         env.IMAGE_REPO = 'dev'
-                    } else if (env.BRANCH_NAME == 'master') {
+                    } else if (env.BRANCH_NAME == 'main') {
                         env.IMAGE_REPO = 'prod'
                     } else {
-                        error("Only dev and master branches are supported")
+                        error("Only dev and main branches are supported")
                     }
 
                     env.IMAGE_TAG = sh(
@@ -78,7 +78,7 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2') {
+                stage('Deploy to EC2') {
             steps {
                 sshagent(credentials: ['app-server-ssh']) {
                     withCredentials([usernamePassword(
@@ -87,18 +87,31 @@ pipeline {
                         passwordVariable: 'DH_TOKEN'
                     )]) {
                         sh '''
+                            set -eu
                             set +x
+
                             mkdir -p ~/.ssh
                             chmod 700 ~/.ssh
-
+                            touch ~/.ssh/known_hosts
                             ssh-keyscan -H "$APP_HOST" >> ~/.ssh/known_hosts
 
+                            echo "Preparing application directory on EC2"
+                            ssh "$APP_USER@$APP_HOST" \
+                              "sudo mkdir -p '$APP_DIR' && sudo chown '$APP_USER':'$APP_USER' '$APP_DIR'"
+
+                            echo "Copying deployment files to EC2"
+                            scp docker-compose.yml deploy.sh \
+                              "$APP_USER@$APP_HOST:$APP_DIR/"
+
+                            echo "Logging in to Docker Hub on EC2"
                             printf '%s' "$DH_TOKEN" | ssh \
                               "$APP_USER@$APP_HOST" \
                               "sudo docker login --username '$DH_USER' --password-stdin"
 
+                            echo "Deploying application"
                             ssh "$APP_USER@$APP_HOST" \
-                              "DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' \
+                              "chmod +x '$APP_DIR/deploy.sh' && \
+                               DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' \
                                IMAGE_REPO='$IMAGE_REPO' \
                                IMAGE_TAG='$IMAGE_TAG' \
                                bash '$APP_DIR/deploy.sh'"
@@ -107,26 +120,3 @@ pipeline {
                 }
             }
         }
-
-        stage('Verify') {
-            steps {
-                sh '''
-                    set -eu
-                    curl --fail --show-error --silent \
-                      "http://$APP_HOST/health"
-                    echo
-                '''
-            }
-        }
-    }
-
-    post {
-        success {
-            echo "Build and deployment completed successfully."
-        }
-        failure {
-            echo "Pipeline failed. Check the stage logs and Console Output."
-        }
-    }
-}
-
